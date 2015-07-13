@@ -4,6 +4,7 @@ from Queue import Queue
 from datetime import datetime
 import time
 from pprint import pprint
+import operator
 
 class CounterProgressSaver:
     """Serializes whatever is on its queue as JSON and writes to a file on regular intervals"""
@@ -60,6 +61,12 @@ class CounterTracker:
             self.time_stream[timestamp][tag] = 1
         else:
             self.time_stream[timestamp][tag] += 1
+
+    def print_top_tags(self, num = 20):
+        sorted_tags = sorted(self.tag_aggregates.items(), key = operator.itemgetter(1))
+        sorted_tags = sorted_tags[(len(sorted_tags) - num):]
+        for tag in sorted_tags:
+            print str(tag[1]) + ' posts: ' + tag[0]
 
     def add(self, tag, timestamp):
         self._add_to_time_aggregate(tag, timestamp)
@@ -120,7 +127,7 @@ class Counter:
 
     def run(self):
         submissions = self.get_submissions()
-        while (submissions is not None) and self._should_keep_running():
+        while (submissions is not None) and len(submissions) > 0 and self._should_keep_running():
             for submission in submissions:
                 self.process_submission(submission)
                 self.last_post_retrieved = submission
@@ -130,7 +137,8 @@ class Counter:
             self.saver.write_out('progress.json')
             time.sleep(self.min_sleep_secs)
             submissions = self.get_submissions(self.last_submission_retrieved)
-
+        print('Submissions result length: ' + str(len(submissions)) + ', Should keep running? ' + str(self._should_keep_running()))
+        self.tracker.print_top_tags()
 
 counter = Counter('unixporn', earliest_date_to_get = datetime(2015, 1, 1), max_posts = None)
 counter.run()
